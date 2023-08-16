@@ -6,41 +6,60 @@ import gsap from 'gsap';
 const gui = new dat.GUI();
 const world = {
   plane: {
-    width: 24,
-    height: 24,
-    widthSegments: 32,
-    heightSegments: 32
+    width: 400,
+    height: 400,
+    widthSegments: 50,
+    heightSegments: 50
   }
 }
-gui.add(world.plane, 'width', 1, 50)
+gui.add(world.plane, 'width', 1, 500)
   .onChange(() => {
     generatePlane();
 });
-gui.add(world.plane, 'height', 1, 50)
+gui.add(world.plane, 'height', 1, 500)
   .onChange(() => {
     generatePlane();
 });
-gui.add(world.plane, 'widthSegments', 1, 50)
+gui.add(world.plane, 'widthSegments', 1, 100)
   .onChange(() => {
     generatePlane();
 });
-gui.add(world.plane, 'heightSegments', 1, 50)
+gui.add(world.plane, 'heightSegments', 1, 100)
   .onChange(() => {
     generatePlane();
 });
+
+
+
 
 function generatePlane() {
     planeMesh.geometry.dispose();
     planeMesh.geometry = new THREE.PlaneGeometry(world.plane.width, world.plane.height, world.plane.widthSegments, world.plane.heightSegments);
 
+    // vertice position randomization
     const { array } = planeMesh.geometry.attributes.position;
-    for (let i = 0; i < array.length; i += 3) 
+    const randomValues = [];
+    for (let i = 0; i < array.length; i++) 
     {
-      const x = array[i];
-      const y = array[i + 1];
-      const z = array[i + 2];
-      array[i + 2] = z + Math.random();
+      if (i % 3 === 0) { //every 3
+          const x = array[i];
+          const y = array[i + 1];
+          const z = array[i + 2];
+        
+          array[i] = x + (Math.random() - 0.5) * 3; //-0.5 - 0.5
+          array[i + 1] = y + (Math.random() - 0.5) * 3; //-0.5 - 0.5
+          array[i + 2] = z + (Math.random() - 0.5) * 8;
+      }
+
+      randomValues.push(Math.random() * Math.PI * 2); // 0 - 6.28
     }
+
+    console.log(randomValues); //same amount as vertices
+
+    planeMesh.geometry.attributes.position.randomValues = randomValues;
+    planeMesh.geometry.attributes.position.originalPosition = planeMesh.geometry.attributes.position; // adding onto position
+
+    console.log(planeMesh.geometry.attributes.position);
 
     const colors = [];
     for (let i = 0; i < planeMesh.geometry.attributes.position.count; i++) {
@@ -48,6 +67,9 @@ function generatePlane() {
     }
     planeMesh.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3))
 }
+
+
+
 
 const raycaster = new THREE.Raycaster();
 const scene = new THREE.Scene();
@@ -59,52 +81,20 @@ renderer.setPixelRatio(devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
 new OrbitControls(camera, renderer.domElement);
-camera.position.z = 5;
+camera.position.z = 50;
 
 const planeGeometry = new THREE.PlaneGeometry(world.plane.width, world.plane.height, world.plane.widthSegments, world.plane.heightSegments); //width, height, segments width, segments height
 const planeMaterial = new THREE.MeshPhongMaterial({side: THREE.DoubleSide, flatShading: true, vertexColors: true });
 const planeMesh = new THREE.Mesh(planeGeometry, planeMaterial);
 
-
-// vertice position randomization
-const { array } = planeMesh.geometry.attributes.position;
-const randomValues = [];
-for (let i = 0; i < array.length; i++) 
-{
-  if (i % 3 === 0) { //every 3
-      const x = array[i];
-      const y = array[i + 1];
-      const z = array[i + 2];
-    
-      array[i] = x + (Math.random() - 0.5); //-0.5 - 0.5
-      array[i + 1] = y + (Math.random() - 0.5); //-0.5 - 0.5
-      array[i + 2] = z + Math.random();
-  }
-
-  randomValues.push(Math.random() - 0.5);  //-0.5 - 0.5
-}
-
-console.log(randomValues); //same amount as vertices
-
-planeMesh.geometry.attributes.position.randomValues = randomValues;
-planeMesh.geometry.attributes.position.originalPosition = planeMesh.geometry.attributes.position; // adding onto position
-
-console.log(planeMesh.geometry.attributes.position);
-
-// color attribute addition
-const colors = []
-for (let i = 0; i < planeMesh.geometry.attributes.position.count; i++) { //121
-  colors.push(0, 0.19, 0.4); //pushes individually (amount = 363)
-}
-
-
-// planeMesh.geometry.setAttribute('Jesus');
-planeMesh.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
-
 scene.add(planeMesh);
 
-const light = new THREE.DirectionalLight(0xFFFFFF, 1.2);
-light.position.set(0, 0, 1); //moves infront of us
+generatePlane();
+
+
+
+const light = new THREE.DirectionalLight(0xFFFFFF, 1);
+light.position.set(0, -1, 1); //moves infront of us
 scene.add(light)
 
 const backLight = new THREE.DirectionalLight(0xFFFFFF, 1.2);
@@ -117,6 +107,8 @@ const mouse = {
   y: undefined
 }
 
+
+
 let frame = 0;
 function animate() { //called over and over again
   requestAnimationFrame(animate);
@@ -127,10 +119,10 @@ function animate() { //called over and over again
   const { array , originalPosition, randomValues } = planeMesh.geometry.attributes.position;
   for (let i = 0; i < array.length; i += 3) {
     // x
-    array[i] = originalPosition.array[i] + Math.cos(frame + randomValues[i]) * 0.001;
+    array[i] = originalPosition.array[i] + Math.cos(frame + randomValues[i]) * 0.01;
     
     // y
-    array[i + 1] = originalPosition.array[i + 1] + Math.sin(frame + randomValues[i + 1]) * 0.001;
+    array[i + 1] = originalPosition.array[i + 1] + Math.sin(frame + randomValues[i + 1]) * 0.01;
 
     // if (i === 0) console.log(array[i]);
   }
